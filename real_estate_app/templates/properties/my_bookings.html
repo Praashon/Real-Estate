@@ -1,0 +1,508 @@
+{% extends 'base.html' %}
+
+{% block title %}My Bookings - RealEstate{% endblock %}
+
+{% block extra_css %}
+<style>
+    .bookings-container {
+        padding: 2rem 0;
+        background: #f8fafc;
+        min-height: 100vh;
+    }
+
+    .page-header {
+        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        color: white;
+        padding: 3rem 0;
+        margin-bottom: 2rem;
+        border-radius: 0 0 25px 25px;
+    }
+
+    .booking-card {
+        background: white;
+        border-radius: 15px;
+        box-shadow: 0 5px 15px rgba(0,0,0,0.08);
+        margin-bottom: 1.5rem;
+        overflow: hidden;
+        transition: all 0.3s ease;
+    }
+
+    .booking-card:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 10px 25px rgba(0,0,0,0.15);
+    }
+
+    .booking-header {
+        padding: 1.5rem;
+        border-bottom: 1px solid #e2e8f0;
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+    }
+
+    .booking-title {
+        font-size: 1.1rem;
+        font-weight: 600;
+        color: #2d3748;
+        margin: 0;
+    }
+
+    .booking-id {
+        font-size: 0.85rem;
+        color: #718096;
+        background: #f7fafc;
+        padding: 0.25rem 0.75rem;
+        border-radius: 20px;
+    }
+
+    .status-badge {
+        padding: 0.5rem 1rem;
+        border-radius: 25px;
+        font-size: 0.875rem;
+        font-weight: 600;
+        text-transform: uppercase;
+        letter-spacing: 0.025em;
+    }
+
+    .status-pending {
+        background: #fef5e7;
+        color: #d69e2e;
+        border: 1px solid #f6e05e;
+    }
+
+    .status-confirmed {
+        background: #e6fffa;
+        color: #2d7a69;
+        border: 1px solid #68d391;
+    }
+
+    .status-rejected {
+        background: #fed7d7;
+        color: #c53030;
+        border: 1px solid #fc8181;
+    }
+
+    .status-cancelled {
+        background: #e2e8f0;
+        color: #4a5568;
+        border: 1px solid #a0aec0;
+    }
+
+    /* Payment Status Badges */
+    .payment-status {
+        display: inline-block;
+        padding: 0.25rem 0.75rem;
+        border-radius: 20px;
+        font-size: 0.75rem;
+        font-weight: 600;
+        text-transform: uppercase;
+        letter-spacing: 0.025em;
+    }
+
+    .payment-pending {
+        background: #fef5e7;
+        color: #d69e2e;
+        border: 1px solid #f6e05e;
+    }
+
+    .payment-authorized {
+        background: #e6f3ff;
+        color: #1e40af;
+        border: 1px solid #60a5fa;
+    }
+
+    .payment-captured {
+        background: #e6fffa;
+        color: #2d7a69;
+        border: 1px solid #68d391;
+    }
+
+    .payment-failed {
+        background: #fed7d7;
+        color: #c53030;
+        border: 1px solid #fc8181;
+    }
+
+    .payment-refunded {
+        background: #fef2f2;
+        color: #7f2d2d;
+        border: 1px solid #f87171;
+    }
+
+    .payment-cancelled {
+        background: #fef2f2;
+        color: #dc2626;
+        border: 1px solid #ef4444;
+        font-weight: 700;
+    }
+
+    .booking-message {
+        padding: 1rem 1.5rem;
+        margin: 0;
+        font-size: 0.95rem;
+        border-radius: 10px;
+        margin-bottom: 1rem;
+    }
+
+    .message-success {
+        background: #e6fffa;
+        color: #2d7a69;
+        border-left: 4px solid #38b2ac;
+    }
+
+    .message-warning {
+        background: #fef5e7;
+        color: #d69e2e;
+        border-left: 4px solid #ed8936;
+    }
+
+    .message-danger {
+        background: #fed7d7;
+        color: #c53030;
+        border-left: 4px solid #e53e3e;
+    }
+
+    .booking-details {
+        padding: 1.5rem;
+    }
+
+    .detail-row {
+        display: flex;
+        justify-content: space-between;
+        margin-bottom: 0.75rem;
+        padding: 0.5rem 0;
+        border-bottom: 1px solid #f7fafc;
+    }
+
+    .detail-label {
+        font-weight: 600;
+        color: #4a5568;
+    }
+
+    .detail-value {
+        color: #2d3748;
+    }
+
+    .property-link {
+        color: #667eea;
+        text-decoration: none;
+        font-weight: 600;
+    }
+
+    .property-link:hover {
+        color: #764ba2;
+        text-decoration: underline;
+    }
+
+    .empty-state {
+        text-align: center;
+        padding: 4rem 2rem;
+        color: #718096;
+    }
+
+    .empty-state i {
+        font-size: 4rem;
+        margin-bottom: 1rem;
+        color: #e2e8f0;
+    }
+
+    .stats-cards {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+        gap: 1rem;
+        margin-bottom: 2rem;
+    }
+
+    .stat-card {
+        background: white;
+        padding: 1.5rem;
+        border-radius: 10px;
+        box-shadow: 0 2px 10px rgba(0,0,0,0.05);
+        text-align: center;
+    }
+
+    .stat-number {
+        font-size: 2rem;
+        font-weight: bold;
+        color: #667eea;
+        margin-bottom: 0.5rem;
+    }
+
+    .stat-label {
+        color: #718096;
+        font-size: 0.875rem;
+        text-transform: uppercase;
+        letter-spacing: 0.025em;
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="bookings-container">
+    <div class="page-header">
+        <div class="container">
+            <div class="row">
+                <div class="col-md-12">
+                    <h1 class="mb-0">
+                        <i class="fas fa-calendar-check me-3"></i>
+                        My Bookings
+                    </h1>
+                    <p class="mb-0 mt-2 opacity-75">Track your property bookings and visit requests</p>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="container">
+        {% if bookings %}
+            <!-- Booking Statistics -->
+            <div class="stats-cards">
+                <div class="stat-card">
+                    <div class="stat-number">{{ bookings|length }}</div>
+                    <div class="stat-label">Total Bookings</div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-number">
+                        {% with pending_count=0 %}
+                        {% for booking in bookings %}
+                            {% if booking.status == 'pending' %}
+                                {% with pending_count=pending_count|add:1 %}{% endwith %}
+                            {% endif %}
+                        {% endfor %}
+                        {{ pending_count }}
+                        {% endwith %}
+                    </div>
+                    <div class="stat-label">Pending</div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-number">
+                        {% with confirmed_count=0 %}
+                        {% for booking in bookings %}
+                            {% if booking.status == 'confirmed' %}
+                                {% with confirmed_count=confirmed_count|add:1 %}{% endwith %}
+                            {% endif %}
+                        {% endfor %}
+                        {{ confirmed_count }}
+                        {% endwith %}
+                    </div>
+                    <div class="stat-label">Confirmed</div>
+                </div>
+            </div>
+
+            <!-- Booking Cards -->
+            {% for booking in bookings %}
+            <div class="booking-card">
+                <div class="booking-header">
+                    <h5 class="booking-title">
+                        <a href="{% url 'properties:property_detail' booking.property_ref.id %}" class="property-link">
+                            {{ booking.property_ref.title }}
+                        </a>
+                    </h5>
+                    <div class="d-flex align-items-center gap-3">
+                        <span class="booking-id">ID: #{{ booking.id }}</span>
+                        <span class="status-badge status-{{ booking.status }}">
+                            {{ booking.get_status_display }}
+                        </span>
+                    </div>
+                </div>
+
+                <!-- Status Message -->
+                <div class="px-3 pt-3">
+                    {% if booking.status == 'pending' %}
+                        <div class="booking-message message-warning">
+                            <i class="fas fa-clock me-2"></i>
+                            <strong>✅ Booking successful! Awaiting confirmation.</strong><br>
+                            Your booking request has been submitted and is being reviewed by our team.
+                        </div>
+                    {% elif booking.status == 'confirmed' %}
+                        <div class="booking-message message-success">
+                            <i class="fas fa-check-circle me-2"></i>
+                            <strong>🎉 Congratulations! Your booking has been confirmed.</strong><br>
+                            The property agent will contact you soon with further details.
+                        </div>
+                    {% elif booking.status == 'rejected' %}
+                        <div class="booking-message message-danger">
+                            <i class="fas fa-times-circle me-2"></i>
+                            <strong>❌ Unfortunately, your booking has been declined.</strong><br>
+                            {% if booking.admin_notes %}
+                                Reason: {{ booking.admin_notes }}
+                            {% else %}
+                                Please contact us for more information.
+                            {% endif %}
+                        </div>
+                    {% endif %}
+                </div>
+
+                <div class="booking-details">
+                    <div class="detail-row">
+                        <span class="detail-label">
+                            <i class="fas fa-home me-2"></i>Property
+                        </span>
+                        <span class="detail-value">{{ booking.property_ref.title }}</span>
+                    </div>
+                    
+                    <div class="detail-row">
+                        <span class="detail-label">
+                            <i class="fas fa-map-marker-alt me-2"></i>Address
+                        </span>
+                        <span class="detail-value">{{ booking.property_ref.address }}</span>
+                    </div>
+
+                    <div class="detail-row">
+                        <span class="detail-label">
+                            <i class="fas fa-tag me-2"></i>Booking Type
+                        </span>
+                        <span class="detail-value">{{ booking.get_booking_type_display }}</span>
+                    </div>
+
+                    <div class="detail-row">
+                        <span class="detail-label">
+                            <i class="fas fa-calendar me-2"></i>Booking Date
+                        </span>
+                        <span class="detail-value">{{ booking.created_at|date:"F d, Y \a\t g:i A" }}</span>
+                    </div>
+
+                    {% if booking.preferred_date %}
+                    <div class="detail-row">
+                        <span class="detail-label">
+                            <i class="fas fa-calendar-check me-2"></i>Preferred Visit Date
+                        </span>
+                        <span class="detail-value">{{ booking.preferred_date|date:"F d, Y \a\t g:i A" }}</span>
+                    </div>
+                    {% endif %}
+
+                    <div class="detail-row">
+                        <span class="detail-label">
+                            <i class="fas fa-money-bill me-2"></i>Amount Paid
+                        </span>
+                        <span class="detail-value">NPR {{ booking.payment_amount|floatformat:2 }}</span>
+                    </div>
+
+                    <div class="detail-row">
+                        <span class="detail-label">
+                            <i class="fas fa-credit-card me-2"></i>Payment Method
+                        </span>
+                        <span class="detail-value">{{ booking.get_payment_method_display }}</span>
+                    </div>
+
+                    <div class="detail-row">
+                        <span class="detail-label">
+                            <i class="fas fa-money-check me-2"></i>Payment Status
+                        </span>
+                        <span class="detail-value">
+                            <span class="payment-status payment-{{ booking.payment_status }}">
+                                {{ booking.get_payment_status_display }}
+                            </span>
+                            {% if booking.status == 'cancelled' and booking.payment_status == 'captured' %}
+                                <div class="alert alert-info mt-2 mb-0" style="font-size: 0.85rem;">
+                                    <i class="fas fa-info-circle me-1"></i>
+                                    <strong>Refund Notice:</strong> Your payment will be refunded automatically. 
+                                    If you don't receive your refund within 3-5 business days, please contact support.
+                                </div>
+                            {% elif booking.status == 'cancelled' and booking.payment_status == 'refunded' %}
+                                <div class="alert alert-success mt-2 mb-0" style="font-size: 0.85rem;">
+                                    <i class="fas fa-check-circle me-1"></i>
+                                    <strong>Refund Processed:</strong> Your payment has been refunded successfully.
+                                </div>
+                            {% endif %}
+                        </span>
+                    </div>
+
+                    <div class="detail-row">
+                        <span class="detail-label">
+                            <i class="fas fa-receipt me-2"></i>Transaction ID
+                        </span>
+                        <span class="detail-value"><code>{{ booking.transaction_id }}</code></span>
+                    </div>
+
+                    {% if booking.verified_by %}
+                    <div class="detail-row">
+                        <span class="detail-label">
+                            <i class="fas fa-user-check me-2"></i>Verified By
+                        </span>
+                        <span class="detail-value">{{ booking.verified_by.get_full_name|default:booking.verified_by.email }}</span>
+                    </div>
+                    {% endif %}
+
+                    {% if booking.verified_at %}
+                    <div class="detail-row">
+                        <span class="detail-label">
+                            <i class="fas fa-clock me-2"></i>Verified At
+                        </span>
+                        <span class="detail-value">{{ booking.verified_at|date:"F d, Y \a\t g:i A" }}</span>
+                    </div>
+                    {% endif %}
+
+                    {% if booking.message %}
+                    <div class="detail-row">
+                        <span class="detail-label">
+                            <i class="fas fa-comment me-2"></i>Your Message
+                        </span>
+                        <span class="detail-value">{{ booking.message }}</span>
+                    </div>
+                    {% endif %}
+
+                    <div class="mt-3 pt-3 border-top">
+                        <a href="{% url 'properties:booking_detail' booking.id %}" class="btn btn-outline-primary me-2">
+                            <i class="fas fa-eye me-2"></i>View Details
+                        </a>
+                        <a href="{% url 'properties:property_detail' booking.property_ref.id %}" class="btn btn-outline-secondary">
+                            <i class="fas fa-home me-2"></i>View Property
+                        </a>
+                    </div>
+                </div>
+            </div>
+            {% endfor %}
+
+            <!-- Pagination -->
+            {% if is_paginated %}
+            <nav aria-label="Bookings pagination" class="mt-4">
+                <ul class="pagination justify-content-center">
+                    {% if page_obj.has_previous %}
+                        <li class="page-item">
+                            <a class="page-link" href="?page=1">&laquo; First</a>
+                        </li>
+                        <li class="page-item">
+                            <a class="page-link" href="?page={{ page_obj.previous_page_number }}">Previous</a>
+                        </li>
+                    {% endif %}
+
+                    <li class="page-item active">
+                        <span class="page-link">
+                            Page {{ page_obj.number }} of {{ page_obj.paginator.num_pages }}
+                        </span>
+                    </li>
+
+                    {% if page_obj.has_next %}
+                        <li class="page-item">
+                            <a class="page-link" href="?page={{ page_obj.next_page_number }}">Next</a>
+                        </li>
+                        <li class="page-item">
+                            <a class="page-link" href="?page={{ page_obj.paginator.num_pages }}">Last &raquo;</a>
+                        </li>
+                    {% endif %}
+                </ul>
+            </nav>
+            {% endif %}
+
+        {% else %}
+            <div class="empty-state">
+                <i class="fas fa-calendar-times"></i>
+                <h3>No Bookings Yet</h3>
+                <p>You haven't made any property bookings yet. Start exploring our properties!</p>
+                <a href="{% url 'properties:property_list' %}" class="btn btn-primary">
+                    <i class="fas fa-search me-2"></i>Browse Properties
+                </a>
+            </div>
+        {% endif %}
+    </div>
+</div>
+
+<script>
+// Auto-refresh booking status every 30 seconds for real-time updates
+setInterval(function() {
+    // You can implement AJAX refresh here if needed
+    // For now, we'll rely on user refresh
+}, 30000);
+</script>
+{% endblock %}

@@ -1,0 +1,1442 @@
+{% extends 'base.html' %}
+
+{% block title %}{{ property.title }} - RealEstate{% endblock %}
+
+{% block extra_css %}
+<!-- Leaflet CSS -->
+<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"
+      integrity="sha256-p4NxAoJBhIIN+hmNHrzRCf9tD/miZyoHS5obTRR9BMY="
+      crossorigin=""/>
+
+<style>
+    .property-hero {
+        position: relative;
+        overflow: hidden;
+        border-radius: 20px;
+        box-shadow: 0 15px 35px rgba(0,0,0,0.1);
+    }
+    
+    .property-hero .carousel-item img {
+        height: 500px;
+        object-fit: cover;
+        width: 100%;
+    }
+    
+    .property-hero .carousel-control-prev,
+    .property-hero .carousel-control-next {
+        width: 60px;
+        height: 60px;
+        top: 50%;
+        transform: translateY(-50%);
+        background: rgba(255,255,255,0.9);
+        border-radius: 50%;
+        backdrop-filter: blur(10px);
+        border: none;
+        color: #333;
+        transition: all 0.3s ease;
+    }
+    
+    .property-hero .carousel-control-prev:hover,
+    .property-hero .carousel-control-next:hover {
+        background: rgba(255,255,255,1);
+        transform: translateY(-50%) scale(1.1);
+    }
+    
+    .property-hero .carousel-control-prev {
+        left: 20px;
+    }
+    
+    .property-hero .carousel-control-next {
+        right: 20px;
+    }
+    
+    .property-hero .carousel-indicators {
+        bottom: 20px;
+    }
+    
+    .property-hero .carousel-indicators button {
+        width: 12px;
+        height: 12px;
+        border-radius: 50%;
+        margin: 0 5px;
+        border: 2px solid rgba(255,255,255,0.5);
+        background: transparent;
+    }
+    
+    .property-hero .carousel-indicators button.active {
+        background: white;
+        border-color: white;
+    }
+    
+    .property-badge {
+        position: absolute;
+        top: 20px;
+        right: 20px;
+        z-index: 10;
+        padding: 8px 16px;
+        border-radius: 25px;
+        font-weight: 600;
+        text-transform: uppercase;
+        font-size: 0.85rem;
+        letter-spacing: 1px;
+        backdrop-filter: blur(10px);
+    }
+    
+    .property-badge.available {
+        background: rgba(40, 167, 69, 0.9);
+        color: white;
+    }
+    
+    .property-badge.pending {
+        background: rgba(255, 193, 7, 0.9);
+        color: #333;
+    }
+    
+    .property-badge.sold {
+        background: rgba(108, 117, 125, 0.9);
+        color: white;
+    }
+    
+    .price-tag {
+        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        color: white;
+        padding: 15px 25px;
+        border-radius: 15px;
+        font-size: 1.8rem;
+        font-weight: 700;
+        text-align: center;
+        margin: 20px 0;
+        box-shadow: 0 8px 25px rgba(102, 126, 234, 0.3);
+    }
+    
+    .feature-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
+        gap: 20px;
+        margin: 30px 0;
+    }
+    
+    .feature-item {
+        background: linear-gradient(135deg, #f8f9fa 0%, #e9ecef 100%);
+        border: none;
+        border-radius: 15px;
+        padding: 25px 15px;
+        text-align: center;
+        transition: all 0.3s ease;
+        box-shadow: 0 5px 15px rgba(0,0,0,0.05);
+    }
+    
+    .feature-item:hover {
+        transform: translateY(-5px);
+        box-shadow: 0 15px 35px rgba(0,0,0,0.1);
+    }
+    
+    .feature-item i {
+        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        -webkit-background-clip: text;
+        -webkit-text-fill-color: transparent;
+        background-clip: text;
+        font-size: 2.5rem;
+        margin-bottom: 10px;
+        display: block;
+    }
+    
+    .feature-item h5 {
+        color: #333;
+        font-weight: 700;
+        margin: 10px 0 5px;
+    }
+    
+    .feature-item p {
+        color: #666;
+        font-size: 0.9rem;
+        margin: 0;
+    }
+    
+    .info-card {
+        background: white;
+        border-radius: 20px;
+        padding: 30px;
+        box-shadow: 0 10px 30px rgba(0,0,0,0.08);
+        border: none;
+        margin-bottom: 30px;
+        transition: all 0.3s ease;
+    }
+    
+    .info-card:hover {
+        box-shadow: 0 20px 50px rgba(0,0,0,0.12);
+        transform: translateY(-2px);
+    }
+    
+    .map-container {
+        height: 350px;
+        border-radius: 15px;
+        overflow: hidden;
+        box-shadow: 0 8px 25px rgba(0,0,0,0.1);
+        border: 3px solid #f8f9fa;
+    }
+    
+    .agent-card {
+        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        color: white;
+        border-radius: 20px;
+        padding: 30px;
+        text-align: center;
+        box-shadow: 0 15px 35px rgba(102, 126, 234, 0.3);
+        border: none;
+        margin-bottom: 30px;
+    }
+    
+    .agent-avatar {
+        width: 100px;
+        height: 100px;
+        border-radius: 50%;
+        margin: 0 auto 20px;
+        border: 4px solid rgba(255,255,255,0.3);
+        overflow: hidden;
+        background: rgba(255,255,255,0.1);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 2.5rem;
+        font-weight: bold;
+    }
+    
+    .agent-avatar img {
+        width: 100%;
+        height: 100%;
+        object-fit: cover;
+    }
+    
+    .action-buttons {
+        background: white;
+        border-radius: 20px;
+        padding: 25px;
+        box-shadow: 0 10px 30px rgba(0,0,0,0.08);
+        border: none;
+        margin-bottom: 30px;
+    }
+    
+    .btn-action {
+        border-radius: 12px;
+        padding: 12px 20px;
+        font-weight: 600;
+        text-transform: uppercase;
+        letter-spacing: 0.5px;
+        transition: all 0.3s ease;
+        border: none;
+        margin-bottom: 10px;
+    }
+    
+    .btn-action:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 8px 25px rgba(0,0,0,0.15);
+    }
+    
+    .btn-book {
+        background: linear-gradient(135deg, #28a745 0%, #20c997 100%);
+        color: white;
+    }
+    
+    .btn-visit {
+        background: linear-gradient(135deg, #17a2b8 0%, #007bff 100%);
+        color: white;
+    }
+    
+    .btn-favorite {
+        background: linear-gradient(135deg, #e83e8c 0%, #dc3545 100%);
+        color: white;
+    }
+    
+    .btn-disabled {
+        background: #e9ecef;
+        color: #6c757d;
+        cursor: not-allowed;
+    }
+    
+    .chat-section {
+        background: white;
+        border-radius: 20px;
+        padding: 30px;
+        box-shadow: 0 10px 30px rgba(0,0,0,0.08);
+        border: none;
+        margin-bottom: 30px;
+    }
+    
+    .chat-header {
+        display: flex;
+        align-items: center;
+        margin-bottom: 25px;
+        padding-bottom: 15px;
+        border-bottom: 2px solid #f8f9fa;
+    }
+    
+    .chat-header i {
+        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        -webkit-background-clip: text;
+        -webkit-text-fill-color: transparent;
+        background-clip: text;
+        font-size: 1.5rem;
+        margin-right: 10px;
+    }
+    
+    .messages-container {
+        max-height: 300px;
+        overflow-y: auto;
+        padding: 20px;
+        background: #f8f9fa;
+        border-radius: 15px;
+        margin-bottom: 20px;
+    }
+    
+    .message {
+        margin-bottom: 15px;
+        padding: 12px 16px;
+        border-radius: 18px;
+        max-width: 80%;
+        word-wrap: break-word;
+    }
+    
+    .message-sent {
+        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        color: white;
+        margin-left: auto;
+        text-align: right;
+    }
+    
+    .message-received {
+        background: white;
+        color: #333;
+        border: 1px solid #e9ecef;
+    }
+    
+    .message-time {
+        font-size: 0.75rem;
+        opacity: 0.7;
+        margin-top: 5px;
+    }
+    
+    .breadcrumb-custom {
+        background: white;
+        border-radius: 15px;
+        padding: 15px 25px;
+        box-shadow: 0 5px 15px rgba(0,0,0,0.05);
+        margin-bottom: 30px;
+    }
+    
+    .breadcrumb-custom .breadcrumb {
+        margin: 0;
+        background: none;
+        padding: 0;
+    }
+    
+    .breadcrumb-custom .breadcrumb-item a {
+        color: #667eea;
+        text-decoration: none;
+        font-weight: 500;
+    }
+    
+    .breadcrumb-custom .breadcrumb-item a:hover {
+        color: #764ba2;
+    }
+    
+    .share-buttons {
+        display: flex;
+        justify-content: center;
+        gap: 10px;
+        margin-top: 20px;
+    }
+    
+    .share-btn {
+        width: 45px;
+        height: 45px;
+        border-radius: 50%;
+        border: none;
+        color: white;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 1.2rem;
+        transition: all 0.3s ease;
+        cursor: pointer;
+    }
+    
+    .share-btn:hover {
+        transform: translateY(-3px);
+        box-shadow: 0 8px 20px rgba(0,0,0,0.2);
+    }
+    
+    .share-btn.facebook { background: #3b5998; }
+    .share-btn.twitter { background: #1da1f2; }
+    .share-btn.whatsapp { background: #25d366; }
+    .share-btn.link { background: #6c757d; }
+    
+    .similar-properties {
+        background: white;
+        border-radius: 20px;
+        padding: 30px;
+        box-shadow: 0 10px 30px rgba(0,0,0,0.08);
+        border: none;
+    }
+    
+    .similar-property-item {
+        display: flex;
+        align-items: center;
+        padding: 15px;
+        border-radius: 12px;
+        margin-bottom: 15px;
+        transition: all 0.3s ease;
+        text-decoration: none;
+        color: inherit;
+        border: 1px solid #f8f9fa;
+        background: #fdfdfd;
+    }
+    
+    .similar-property-item:hover {
+        background: #f8f9fa;
+        transform: translateX(5px);
+        box-shadow: 0 5px 15px rgba(0,0,0,0.08);
+        color: inherit;
+        text-decoration: none;
+        border-color: #e9ecef;
+    }
+    
+    .property-thumbnail {
+        width: 70px;
+        height: 70px;
+        border-radius: 8px;
+        object-fit: cover;
+        margin-right: 15px;
+        border: 2px solid #f8f9fa;
+    }
+    
+    .similarity-info {
+        font-size: 0.75rem;
+        color: #28a745;
+    }
+    
+    .similarity-badge {
+        font-size: 0.65rem;
+        padding: 0.3rem 0.6rem;
+        border-radius: 15px;
+        font-weight: 600;
+        letter-spacing: 0.5px;
+        text-transform: uppercase;
+    }
+    
+    .similarity-badge.bg-success {
+        background: linear-gradient(45deg, #28a745, #20c997) !important;
+    }
+    
+    .similarity-badge.bg-info {
+        background: linear-gradient(45deg, #17a2b8, #6f42c1) !important;
+    }
+    
+    .similarity-badge.bg-warning {
+        background: linear-gradient(45deg, #ffc107, #fd7e14) !important;
+        color: #212529 !important;
+    }
+    
+    .similarity-badge.bg-secondary {
+        background: linear-gradient(45deg, #6c757d, #495057) !important;
+    }
+    
+    .similar-property-item .similarity-info small {
+        display: flex;
+        align-items: center;
+        gap: 0.25rem;
+    }
+    
+    .section-title {
+        color: #333;
+        font-weight: 700;
+        margin-bottom: 25px;
+        position: relative;
+        padding-bottom: 10px;
+    }
+    
+    .section-title::after {
+        content: '';
+        position: absolute;
+        bottom: 0;
+        left: 0;
+        width: 50px;
+        height: 3px;
+        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        border-radius: 2px;
+    }
+    
+    .custom-marker {
+        background: linear-gradient(135deg, #e74c3c 0%, #c0392b 100%);
+        border: 3px solid white;
+        border-radius: 50%;
+        box-shadow: 0 3px 10px rgba(0,0,0,0.3);
+    }
+    
+    @media (max-width: 768px) {
+        .feature-grid {
+            grid-template-columns: repeat(2, 1fr);
+        }
+        
+        .property-hero .carousel-item img {
+            height: 300px;
+        }
+        
+        .price-tag {
+            font-size: 1.4rem;
+            padding: 12px 20px;
+        }
+        
+        .info-card, .agent-card, .action-buttons, .chat-section, .similar-properties {
+            padding: 20px;
+        }
+        
+        .map-container {
+            height: 250px;
+        }
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="container-fluid px-4">
+    <!-- Breadcrumb -->
+    <div class="breadcrumb-custom">
+        <nav aria-label="breadcrumb">
+            <ol class="breadcrumb">
+                <li class="breadcrumb-item"><a href="{% url 'index' %}"><i class="fas fa-home me-1"></i>Home</a></li>
+                <li class="breadcrumb-item"><a href="{% url 'properties:property_list' %}">Properties</a></li>
+                <li class="breadcrumb-item active" aria-current="page">{{ property.title }}</li>
+            </ol>
+        </nav>
+    </div>
+
+    <div class="row">
+        <!-- Main Content -->
+        <div class="col-lg-8">
+            <!-- Property Hero Section -->
+            <div class="property-hero mb-4">
+                <div class="property-badge {{ property.status }}">
+                    {{ property.get_status_display }}
+                </div>
+                
+                {% if property.images.exists %}
+                    <div id="propertyCarousel" class="carousel slide" data-bs-interval="false" data-bs-pause="hover" data-bs-wrap="true">
+                        <div class="carousel-indicators">
+                            {% for image in property.images.all %}
+                                <button type="button" data-bs-target="#propertyCarousel" data-bs-slide-to="{{ forloop.counter0 }}" 
+                                        class="{% if forloop.first %}active{% endif %}" 
+                                        aria-current="{% if forloop.first %}true{% endif %}" 
+                                        aria-label="Slide {{ forloop.counter }}"></button>
+                            {% endfor %}
+                        </div>
+                        <div class="carousel-inner">
+                            {% for image in property.images.all %}
+                                <div class="carousel-item {% if forloop.first %}active{% endif %}">
+                                    <img src="{{ image.image.url }}" alt="Property Image {{ forloop.counter }}" class="property-carousel-image">
+                                    {% if image.is_primary %}
+                                        <div class="carousel-caption d-none d-md-block">
+                                            <span class="badge bg-warning text-dark">
+                                                <i class="fas fa-star me-1"></i>Primary Image
+                                            </span>
+                                        </div>
+                                    {% endif %}
+                                    {% if image.caption %}
+                                        <div class="carousel-caption d-none d-md-block">
+                                            <p class="mb-0">{{ image.caption }}</p>
+                                        </div>
+                                    {% endif %}
+                                </div>
+                            {% endfor %}
+                        </div>
+                        <button class="carousel-control-prev" type="button" data-bs-target="#propertyCarousel" data-bs-slide="prev">
+                            <i class="fas fa-chevron-left"></i>
+                            <span class="visually-hidden">Previous</span>
+                        </button>
+                        <button class="carousel-control-next" type="button" data-bs-target="#propertyCarousel" data-bs-slide="next">
+                            <i class="fas fa-chevron-right"></i>
+                            <span class="visually-hidden">Next</span>
+                        </button>
+                    </div>
+                {% else %}
+                    <div class="text-center py-5" style="background: linear-gradient(135deg, #f8f9fa 0%, #e9ecef 100%); height: 400px; display: flex; align-items: center; justify-content: center; flex-direction: column;">
+                        <i class="fas fa-home fa-4x text-muted mb-3"></i>
+                        <h4 class="text-muted">No images available</h4>
+                        <p class="text-muted">Photos will be added soon</p>
+                    </div>
+                {% endif %}
+            </div>
+
+            <!-- Property Information -->
+            <div class="info-card">
+                <div class="d-flex justify-content-between align-items-start mb-3">
+                    <div>
+                        <h1 class="display-6 fw-bold text-dark mb-2">{{ property.title }}</h1>
+                        <p class="text-muted mb-0">
+                            <i class="fas fa-map-marker-alt me-2 text-primary"></i>
+                            {{ property.address }}
+                        </p>
+                    </div>
+                </div>
+                
+                <div class="price-tag">
+                    <i class="fas fa-tag me-2"></i>
+                    Rs. {{ property.price|floatformat:0 }}
+                </div>
+                
+                <!-- Features Grid -->
+                <div class="feature-grid">
+                    <div class="feature-item">
+                        <i class="fas fa-bed"></i>
+                        <h5>{{ property.bedrooms }}</h5>
+                        <p>Bedrooms</p>
+                    </div>
+                    <div class="feature-item">
+                        <i class="fas fa-bath"></i>
+                        <h5>{{ property.bathrooms }}</h5>
+                        <p>Bathrooms</p>
+                    </div>
+                    <div class="feature-item">
+                        <i class="fas fa-ruler-combined"></i>
+                        <h5>{{ property.square_footage }}</h5>
+                        <p>Sq Feet</p>
+                    </div>
+                    <div class="feature-item">
+                        <i class="fas fa-home"></i>
+                        <h5>{{ property.get_property_type_display }}</h5>
+                        <p>Type</p>
+                    </div>
+                </div>
+                
+                <!-- Description -->
+                <div class="mt-4">
+                    <h3 class="section-title">About This Property</h3>
+                    <p class="text-muted lh-lg">{{ property.description|linebreaks }}</p>
+                </div>
+                
+                <!-- Location Map -->
+                {% if property.latitude and property.longitude %}
+                <div class="mt-5">
+                    <h3 class="section-title">
+                        <i class="fas fa-map-marked-alt me-2"></i>
+                        Property Location
+                    </h3>
+                    <div id="propertyMap" class="map-container"></div>
+                    <div class="mt-3 p-3 bg-light rounded">
+                        <div class="row text-center">
+                            <div class="col-md-6">
+                                <small class="text-muted d-block">Latitude</small>
+                                <strong>{{ property.latitude }}</strong>
+                            </div>
+                            <div class="col-md-6">
+                                <small class="text-muted d-block">Longitude</small>
+                                <strong>{{ property.longitude }}</strong>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                {% endif %}
+                
+                <!-- Payment Information -->
+                <div class="alert alert-info mt-4">
+                    <i class="fas fa-info-circle me-2"></i>
+                    <strong>Payment Information:</strong> All transactions are conducted via bank transfers. This is a real estate platform, not an e-commerce site.
+                </div>
+            </div>
+
+            <!-- Chat Section -->
+            {% if user.is_authenticated and property.status == 'available' %}
+            <div class="chat-section">
+                <div class="chat-header">
+                    <h3 class="section-title mb-0">
+                        <i class="fas fa-comments me-2"></i>
+                        Message Exchange
+                    </h3>
+                </div>
+                
+                <div class="messages-container" id="messagesContainer">
+                    {% for msg in property.messages.all|dictsort:"timestamp" %}
+                        <div class="message {% if msg.sender == user %}message-sent{% else %}message-received{% endif %}">
+                            {% if msg.sender != user %}
+                                <strong class="d-block mb-1">{{ msg.sender.get_full_name|default:msg.sender.username }}</strong>
+                            {% endif %}
+                            <div>{{ msg.content }}</div>
+                            <div class="message-time">{{ msg.timestamp|date:"M j, Y g:i A" }}</div>
+                        </div>
+                    {% empty %}
+                        <div class="text-center text-muted py-4">
+                            <i class="fas fa-comments fa-3x mb-3 opacity-50"></i>
+                            <p class="mb-0">Start a conversation about this property</p>
+                        </div>
+                    {% endfor %}
+                </div>
+
+                <form method="post" action="{% url 'properties:send_message' property.id %}" class="d-flex gap-2">
+                    {% csrf_token %}
+                    <input type="text" name="message" class="form-control form-control-lg" 
+                           placeholder="Type your message..." required 
+                           style="border-radius: 25px; border: 2px solid #e9ecef;">
+                    <button class="btn btn-primary btn-lg px-4" type="submit" 
+                            style="border-radius: 25px; background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); border: none;">
+                        <i class="fas fa-paper-plane"></i>
+                    </button>
+                </form>
+            </div>
+            {% endif %}
+        </div>
+
+        <!-- Sidebar -->
+        <div class="col-lg-4">
+            <!-- Agent Information -->
+            <div class="agent-card">
+                <div class="agent-avatar">
+                    {% if property.agent.profile_image %}
+                        <img src="{{ property.agent.profile_image.url }}" alt="{{ property.agent.username }}">
+                    {% else %}
+                        {{ property.agent.username|make_list|first|upper }}
+                    {% endif %}
+                </div>
+                
+                <h4 class="mb-2">{{ property.agent.get_full_name|default:property.agent.username }}</h4>
+                <p class="mb-3 opacity-75">{{ property.agent.get_user_type_display }}</p>
+                
+                {% if property.agent.phone_number %}
+                    <p class="mb-2"><i class="fas fa-phone me-2"></i>{{ property.agent.phone_number }}</p>
+                {% endif %}
+                
+                {% if property.agent.email %}
+                    <p class="mb-3"><i class="fas fa-envelope me-2"></i>{{ property.agent.email }}</p>
+                {% endif %}
+                
+                {% if property.agent.bio %}
+                    <div class="mt-3">
+                        <h6 class="opacity-75">About Agent:</h6>
+                        <p class="small opacity-90">{{ property.agent.bio|truncatewords:25 }}</p>
+                    </div>
+                {% endif %}
+                
+                {% if user.is_authenticated and user.is_customer and property.status == 'available' %}
+                    <!-- <button class="btn btn-light btn-action mt-3" onclick="scrollToChat()" 
+                            style="background: rgba(255,255,255,0.2); border: 2px solid rgba(255,255,255,0.3); color: white;">
+                        <i class="fas fa-comment me-2"></i>Chat with Agent
+                    </button> -->
+                {% endif %}
+            </div>
+
+            <!-- Action Buttons -->
+            <div class="action-buttons">
+                <h5 class="section-title">Take Action</h5>
+                
+                {% if user.is_authenticated and user.is_customer %}
+                    <div class="d-grid gap-3">
+                        {% if has_booking %}
+                            <!-- User has already booked this property -->
+                            <button class="btn btn-action btn-disabled" disabled>
+                                <i class="fas fa-check-circle me-2"></i>Already Booked
+                            </button>
+                        {% elif has_pending_confirmation %}
+                            <!-- Visit is pending dual confirmation -->
+                            {% with visit=pending_confirmation_visit %}
+                                <div class="alert alert-info">
+                                    <h6><i class="fas fa-clock me-2"></i>Visit Completion Pending</h6>
+                                    <div class="row">
+                                        <div class="col-md-6">
+                                            <small class="d-block">
+                                                {% if visit.agent_confirmed_completion|default:False %}
+                                                    <i class="fas fa-check text-success me-1"></i>Agent confirmed
+                                                    {% if visit.agent_confirmation_at %}
+                                                        on {{ visit.agent_confirmation_at|date:"M j" }}
+                                                    {% endif %}
+                                                {% else %}
+                                                    <i class="fas fa-clock text-warning me-1"></i>Waiting for agent confirmation
+                                                {% endif %}
+                                            </small>
+                                        </div>
+                                        <div class="col-md-6">
+                                            <small class="d-block">
+                                                {% if visit.customer_confirmed_completion|default:False %}
+                                                    <i class="fas fa-check text-success me-1"></i>You confirmed
+                                                    {% if visit.customer_confirmation_at %}
+                                                        on {{ visit.customer_confirmation_at|date:"M j" %}
+                                                    {% endif %}
+                                                {% else %}
+                                                    <i class="fas fa-clock text-warning me-1"></i>Your confirmation needed
+                                                {% endif %}
+                                            </small>
+                                        </div>
+                                    </div>
+                                    
+                                    {% if not visit.customer_confirmed_completion|default:False %}
+                                        <div class="mt-2">
+                                            {% if visit.preferred_date %}
+                                                <small class="text-muted d-block mb-2">
+                                                    <i class="fas fa-calendar me-1"></i>
+                                                    Visit scheduled: {{ visit.preferred_date|date:"M j, Y \a\t H:i" }}
+                                                </small>
+                                            {% endif %}
+                                            <form method="post" action="{% url 'properties:customer_confirm_visit' visit.id %}">
+                                                {% csrf_token %}
+                                                <button type="submit" class="btn btn-success" onclick="return confirm('Confirm that your visit was completed? This can only be done during or after the scheduled visit time. Once both you and the agent confirm, you can book this property.')">
+                                                    <i class="fas fa-check-circle me-2"></i>Confirm Visit Completion
+                                                </button>
+                                            </form>
+                                            <small class="text-info d-block mt-1">
+                                                <i class="fas fa-info-circle me-1"></i>
+                                                Can confirm 30 minutes before scheduled time
+                                            </small>
+                                        </div>
+                                    {% else %}
+                                        <div class="alert alert-warning mt-2 mb-0">
+                                            <small>
+                                                <i class="fas fa-info-circle me-1"></i>
+                                                Waiting for agent to also confirm. Once both confirm, booking will be available.
+                                            </small>
+                                        </div>
+                                    {% endif %}
+                                </div>
+                            {% endwith %}
+                        {% elif has_completed_visit %}
+                            <!-- User has completed a visit - prioritize this over has_visit_request -->
+                            {% if can_book_after_visit %}
+                                <!-- Show book property button after visit completion -->
+                                <a href="{% url 'properties:property_booking' property.id %}?type=booking&after_visit={{ completed_visit.id }}" class="btn btn-action btn-book">
+                                    <i class="fas fa-key me-2"></i>Book Property (After Visit)
+                                </a>
+                                <div class="alert alert-success mt-2 mb-0">
+                                    <i class="fas fa-check-circle me-2"></i>
+                                    Visit completed! You can book this property until {{ completed_visit.booking_deadline_display }}.
+                                </div>
+                            {% else %}
+                                <!-- Visit completed but booking deadline passed or property unavailable -->
+                                <button class="btn btn-action btn-disabled" disabled style="background: #6c757d; color: white;">
+                                    <i class="fas fa-check-circle me-2"></i>Visit Completed
+                                </button>
+                                <div class="alert alert-warning mt-2 mb-0">
+                                    <i class="fas fa-exclamation-triangle me-2"></i>
+                                    Visit completed, but booking period has expired or property is no longer available.
+                                </div>
+                            {% endif %}
+                        {% elif has_visit_request %}
+                            <!-- User has already requested a visit for this property -->
+                            <button class="btn btn-action btn-disabled" disabled>
+                                <i class="fas fa-calendar-check me-2"></i>Visit Requested
+                            </button>
+                        {% elif is_booked_by_anyone %}
+                            <!-- Property is booked by someone else -->
+                            <button class="btn btn-action btn-disabled" disabled style="background: #dc3545; color: white;">
+                                <i class="fas fa-ban me-2"></i>Property Booked
+                            </button>
+                            <div class="alert alert-warning mt-2 mb-0">
+                                <i class="fas fa-info-circle me-2"></i>
+                                This property has been booked by another customer.
+                            </div>
+                        {% else %}
+                            <!-- Property available for booking -->
+                            {% if has_visit_request %}
+                                <!-- User has a pending/confirmed visit - show different states -->
+                                <a href="{% url 'properties:property_booking' property.id %}?type=booking" class="btn btn-action btn-book">
+                                    <i class="fas fa-key me-2"></i>Book Property
+                                </a>
+                                <button class="btn btn-action btn-disabled" disabled style="background: #6c757d; color: white;">
+                                    <i class="fas fa-calendar-check me-2"></i>Visit Already Requested
+                                </button>
+                                <div class="alert alert-info mt-2 mb-0">
+                                    <i class="fas fa-info-circle me-2"></i>
+                                    You can still book this property directly, or wait for your visit to be completed.
+                                </div>
+                            {% else %}
+                                <!-- No visit requested - show both options -->
+                                <a href="{% url 'properties:property_booking' property.id %}?type=booking" class="btn btn-action btn-book">
+                                    <i class="fas fa-key me-2"></i>Book Property
+                                </a>
+                                {% if not has_completed_visit %}
+                                    <!-- Only show visit option if user hasn't completed a visit already -->
+                                    <a href="{% url 'properties:property_booking' property.id %}?type=visit" class="btn btn-action btn-visit">
+                                        <i class="fas fa-eye me-2"></i>Schedule Visit
+                                    </a>
+                                {% else %}
+                                    <!-- User has completed a visit - show message instead of visit button -->
+                                    <div class="alert alert-success mt-2 mb-0">
+                                        <i class="fas fa-check-circle me-2"></i>
+                                        You have already completed a visit for this property. You can now book this property or choose a different one.
+                                    </div>
+                                {% endif %}
+                            {% endif %}
+                        {% endif %}
+                        
+                        {% if visit_count > 0 %}
+                            <!-- Show how many people are visiting this property -->
+                            <div class="alert alert-info mt-2 mb-0">
+                                <i class="fas fa-users me-2"></i>
+                                {% if visit_count == 1 %}
+                                    1 person is visiting this property
+                                {% else %}
+                                    {{ visit_count }} people are visiting this property
+                                {% endif %}
+                            </div>
+                        {% endif %}
+                        
+                        <button class="btn btn-action btn-favorite favorite-toggle" data-property-id="{{ property.id }}">
+                            <i class="{% if is_favorite %}fas{% else %}far{% endif %} fa-heart me-2"></i>
+                            {% if is_favorite %}Remove from Favorites{% else %}Add to Favorites{% endif %}
+                        </button>
+                    </div>
+                {% endif %}
+                
+                {% if user.is_authenticated and user == property.agent %}
+                    <div class="d-grid gap-3">
+                        <a href="{% url 'properties:property_update' property.id %}" class="btn btn-action" 
+                           style="background: linear-gradient(135deg, #28a745 0%, #20c997 100%); color: white;">
+                            <i class="fas fa-edit me-2"></i>Edit Property
+                        </a>
+                        
+                        <div class="dropdown">
+                            <button class="btn btn-action w-100 dropdown-toggle" type="button" data-bs-toggle="dropdown" 
+                                    style="background: linear-gradient(135deg, #ffc107 0%, #fd7e14 100%); color: white;">
+                                <i class="fas fa-cog me-2"></i>Change Status
+                            </button>
+                            <ul class="dropdown-menu w-100">
+                                <li><a class="dropdown-item status-change" data-status="available" href="#">
+                                    <i class="fas fa-check-circle me-2 text-success"></i>Mark Available
+                                </a></li>
+                                <li><a class="dropdown-item status-change" data-status="pending" href="#">
+                                    <i class="fas fa-clock me-2 text-warning"></i>Mark Pending
+                                </a></li>
+                                <li><a class="dropdown-item status-change" data-status="sold" href="#">
+                                    <i class="fas fa-handshake me-2 text-secondary"></i>Mark Sold
+                                </a></li>
+                            </ul>
+                        </div>
+                        
+                        <a href="{% url 'properties:property_delete' property.id %}" class="btn btn-action" 
+                           style="background: linear-gradient(135deg, #dc3545 0%, #c82333 100%); color: white;">
+                            <i class="fas fa-trash me-2"></i>Delete Property
+                        </a>
+                    </div>
+                {% endif %}
+
+                <!-- Share Section -->
+                <hr class="my-4">
+                <h6 class="text-center mb-3">Share This Property</h6>
+                <div class="share-buttons">
+                    <button class="share-btn facebook" onclick="shareOnFacebook()" title="Share on Facebook">
+                        <i class="fab fa-facebook-f"></i>
+                    </button>
+                    <button class="share-btn twitter" onclick="shareOnTwitter()" title="Share on Twitter">
+                        <i class="fab fa-twitter"></i>
+                    </button>
+                    <button class="share-btn whatsapp" onclick="shareOnWhatsapp()" title="Share on WhatsApp">
+                        <i class="fab fa-whatsapp"></i>
+                    </button>
+                    <button class="share-btn link" onclick="copyLink()" title="Copy Link">
+                        <i class="fas fa-link"></i>
+                    </button>
+                </div>
+            </div>
+
+            <!-- Similar Properties -->
+            <div class="similar-properties">
+                <h5 class="section-title">Similar Properties</h5>
+                <div id="similarProperties">
+                    <div class="text-center py-4 text-muted">
+                        <div class="spinner-border spinner-border-sm me-2" role="status"></div>
+                        Loading similar properties...
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+{% block extra_js %}
+<!-- Leaflet JavaScript -->
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"
+        integrity="sha256-20nQCchB9co0qIjJZRGuk2/Z9VM+kNiyxNV1lvTlZBo="
+        crossorigin=""></script>
+
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    // Enhanced Carousel functionality - Manual control only
+    const carousel = document.getElementById('propertyCarousel');
+    if (carousel) {
+        const carouselInstance = new bootstrap.Carousel(carousel, {
+            interval: false,  // Disable auto-play completely
+            wrap: true,       // Enable infinite looping
+            keyboard: true,   // Enable keyboard navigation
+            touch: true,      // Enable touch/swipe navigation
+            pause: 'hover'    // Pause on hover (though already disabled)
+        });
+        
+        // Explicitly pause to prevent any auto-cycling
+        carouselInstance.pause();
+        
+        // Prevent any other auto-start attempts
+        carousel.addEventListener('slide.bs.carousel', function() {
+            carouselInstance.pause();
+        });
+        
+        // Add keyboard navigation support
+        document.addEventListener('keydown', function(e) {
+            if (e.key === 'ArrowLeft') {
+                carouselInstance.prev();
+            } else if (e.key === 'ArrowRight') {
+                carouselInstance.next();
+            }
+        });
+        
+        // Add touch/swipe support for mobile
+        let touchStartX = 0;
+        let touchEndX = 0;
+        
+        carousel.addEventListener('touchstart', function(e) {
+            touchStartX = e.changedTouches[0].screenX;
+        });
+        
+        carousel.addEventListener('touchend', function(e) {
+            touchEndX = e.changedTouches[0].screenX;
+            handleSwipe();
+        });
+        
+        function handleSwipe() {
+            const swipeThreshold = 50;
+            const swipeDistance = touchEndX - touchStartX;
+            
+            if (Math.abs(swipeDistance) > swipeThreshold) {
+                if (swipeDistance > 0) {
+                    carouselInstance.prev(); // Swipe right - go to previous
+                } else {
+                    carouselInstance.next(); // Swipe left - go to next
+                }
+            }
+        }
+        
+        // Ensure carousel controls are always clickable
+        const prevBtn = carousel.querySelector('.carousel-control-prev');
+        const nextBtn = carousel.querySelector('.carousel-control-next');
+        
+        if (prevBtn) {
+            prevBtn.addEventListener('click', function(e) {
+                e.preventDefault();
+                carouselInstance.prev();
+            });
+        }
+        
+        if (nextBtn) {
+            nextBtn.addEventListener('click', function(e) {
+                e.preventDefault();
+                carouselInstance.next();
+            });
+        }
+        
+        // Add click event to indicators for direct navigation
+        const indicators = carousel.querySelectorAll('.carousel-indicators button');
+        indicators.forEach((indicator, index) => {
+            indicator.addEventListener('click', function(e) {
+                e.preventDefault();
+                carouselInstance.to(index);
+            });
+        });
+    }
+    
+    // Initialize property location map
+    {% if property.latitude and property.longitude %}
+    const propertyLat = {{ property.latitude }};
+    const propertyLng = {{ property.longitude }};
+    
+    // Create map centered on the property
+    const map = L.map('propertyMap').setView([propertyLat, propertyLng], 15);
+    
+    // Add OpenStreetMap tiles
+    L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+        attribution: '© <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors',
+        maxZoom: 19
+    }).addTo(map);
+    
+    // Create custom property marker
+    const propertyIcon = L.divIcon({
+        className: 'custom-marker',
+        iconSize: [30, 30],
+        iconAnchor: [15, 15],
+        popupAnchor: [0, -15]
+    });
+    
+    // Add property marker
+    const propertyMarker = L.marker([propertyLat, propertyLng], { 
+        icon: propertyIcon 
+    }).addTo(map);
+    
+    // Add popup with property information
+    propertyMarker.bindPopup(`
+        <div class="property-popup" style="text-align: center; min-width: 200px;">
+            <h6 class="mb-2 text-primary">{{ property.title }}</h6>
+            <p class="mb-1 small text-muted">{{ property.address }}</p>
+            <p class="mb-2 fw-bold text-success">Rs. {{ property.price|floatformat:0 }}</p>
+            <div class="d-flex justify-content-around small">
+                <span><i class="fas fa-bed me-1"></i>{{ property.bedrooms }}</span>
+                <span><i class="fas fa-bath me-1"></i>{{ property.bathrooms }}</span>
+                <span><i class="fas fa-ruler me-1"></i>{{ property.square_footage }} sq ft</span>
+            </div>
+        </div>
+    `).openPopup();
+    
+    // Add nearby location markers (optional)
+    addNearbyPlaces(map, propertyLat, propertyLng);
+    {% endif %}
+    
+    // Utility Functions
+    function scrollToChat() {
+        const chatSection = document.querySelector('.chat-section');
+        if (chatSection) {
+            chatSection.scrollIntoView({ behavior: 'smooth' });
+            setTimeout(() => {
+                const messageInput = document.querySelector('input[name="message"]');
+                if (messageInput) {
+                    messageInput.focus();
+                }
+            }, 500);
+        }
+    }
+    
+    function copyLink() {
+        navigator.clipboard.writeText(window.location.href).then(() => {
+            showToast('Property link copied to clipboard!', 'success');
+        });
+    }
+    
+    function shareOnFacebook() {
+        const url = encodeURIComponent(window.location.href);
+        const title = encodeURIComponent('{{ property.title }} - Check out this amazing property!');
+        window.open(`https://www.facebook.com/sharer/sharer.php?u=${url}&quote=${title}`, '_blank');
+    }
+
+    function shareOnTwitter() {
+        const url = encodeURIComponent(window.location.href);
+        const text = encodeURIComponent('Check out this amazing property: {{ property.title }} - Rs. {{ property.price|floatformat:0 }}');
+        window.open(`https://twitter.com/intent/tweet?url=${url}&text=${text}`, '_blank');
+    }
+
+    function shareOnWhatsapp() {
+        const url = encodeURIComponent(window.location.href);
+        const text = encodeURIComponent('🏠 Check out this property: {{ property.title }}\n💰 Price: Rs. {{ property.price|floatformat:0 }}\n📍 Location: {{ property.address }}');
+        window.open(`https://wa.me/?text=${text}%20${url}`, '_blank');
+    }
+    
+    function addNearbyPlaces(map, lat, lng) {
+        // Add some sample nearby places (in a real app, you'd fetch this from an API)
+        const nearbyPlaces = [
+            { name: 'School', type: 'school', icon: 'fas fa-school', color: '#17a2b8' },
+            { name: 'Hospital', type: 'hospital', icon: 'fas fa-hospital', color: '#dc3545' },
+            { name: 'Shopping', type: 'shopping', icon: 'fas fa-shopping-cart', color: '#ffc107' },
+            { name: 'Transport', type: 'transport', icon: 'fas fa-bus', color: '#28a745' }
+        ];
+        
+        // Add a small legend
+        const legend = L.control({ position: 'topright' });
+        legend.onAdd = function(map) {
+            const div = L.DomUtil.create('div', 'map-legend');
+            div.style.cssText = 'background: white; padding: 10px; border-radius: 8px; box-shadow: 0 2px 10px rgba(0,0,0,0.1); font-size: 12px;';
+            div.innerHTML = `
+                <div style="margin-bottom: 5px; font-weight: bold;">Nearby Places</div>
+                ${nearbyPlaces.map(place => 
+                    `<div style="margin: 3px 0;"><i class="${place.icon}" style="color: ${place.color}; width: 15px;"></i> ${place.name}</div>`
+                ).join('')}
+            `;
+            return div;
+        };
+        legend.addTo(map);
+    }
+
+    // Favorite Toggle Functionality
+    {% if user.is_authenticated and user.is_customer %}
+    const favoriteButton = document.querySelector('.favorite-toggle');
+    
+    if (favoriteButton) {
+        favoriteButton.addEventListener('click', function() {
+            const propertyId = this.dataset.propertyId;
+            const icon = this.querySelector('i');
+            const originalContent = this.innerHTML;
+            
+            // Show loading state
+            this.innerHTML = '<i class="fas fa-spinner fa-spin me-2"></i>Processing...';
+            this.disabled = true;
+            
+            fetch(`/properties/favorite/${propertyId}/`, {
+                method: 'POST',
+                headers: {
+                    'X-CSRFToken': '{{ csrf_token }}',
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({}),
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    if (data.is_favorite) {
+                        this.innerHTML = '<i class="fas fa-heart me-2"></i>Remove from Favorites';
+                        this.classList.remove('btn-outline-danger');
+                        this.classList.add('btn-danger');
+                    } else {
+                        this.innerHTML = '<i class="far fa-heart me-2"></i>Add to Favorites';
+                        this.classList.remove('btn-danger');
+                        this.classList.add('btn-outline-danger');
+                    }
+                    showToast(data.message, data.is_favorite ? 'success' : 'info');
+                } else {
+                    this.innerHTML = originalContent;
+                    showToast(data.message || 'An error occurred', 'error');
+                }
+            })
+            .catch(error => {
+                console.error('Error:', error);
+                this.innerHTML = originalContent;
+                showToast('Network error. Please try again.', 'error');
+            })
+            .finally(() => {
+                this.disabled = false;
+            });
+        });
+    }
+    {% endif %}
+
+    // Status Change Functionality (for agents)
+    {% if user.is_authenticated and user == property.agent %}
+    const statusButtons = document.querySelectorAll('.status-change');
+    
+    statusButtons.forEach(button => {
+        button.addEventListener('click', function(e) {
+            e.preventDefault();
+            const status = this.dataset.status;
+            const statusText = this.textContent.trim();
+            
+            if (confirm(`Are you sure you want to ${statusText.toLowerCase()}?`)) {
+                // Show loading state
+                const originalText = this.innerHTML;
+                this.innerHTML = '<i class="fas fa-spinner fa-spin me-2"></i>Updating...';
+                
+                fetch(`/properties/update-status/{{ property.id }}/`, {
+                    method: 'POST',
+                    headers: {
+                        'X-CSRFToken': '{{ csrf_token }}',
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({ status: status }),
+                })
+                .then(response => response.json())
+                .then(data => {
+                    if (data.success) {
+                        showToast(data.message, 'success');
+                        
+                        // Update status badge
+                        const statusBadge = document.querySelector('.property-badge');
+                        if (statusBadge) {
+                            statusBadge.className = `property-badge ${status}`;
+                            statusBadge.textContent = data.status_display || status.charAt(0).toUpperCase() + status.slice(1);
+                        }
+
+                        // Hide chat section if property is sold
+                        if (status === 'sold') {
+                            const chatSection = document.querySelector('.chat-section');
+                            if (chatSection) {
+                                chatSection.style.display = 'none';
+                            }
+                        }
+                        
+                        // Reload page after a short delay to reflect changes
+                        setTimeout(() => {
+                            window.location.reload();
+                        }, 1500);
+                    } else {
+                        showToast(data.message || 'Failed to update status', 'error');
+                    }
+                })
+                .catch(error => {
+                    console.error('Error:', error);
+                    showToast('Network error. Please try again.', 'error');
+                })
+                .finally(() => {
+                    this.innerHTML = originalText;
+                });
+            }
+        });
+    });
+    {% endif %}
+
+    // Load Similar Properties
+    loadSimilarProperties();
+    
+    function loadSimilarProperties() {
+        const container = document.getElementById('similarProperties');
+        
+        fetch(`/properties/similar/{{ property.id }}/`)
+            .then(response => response.json())
+            .then(data => {
+                if (data.properties && data.properties.length > 0) {
+                    container.innerHTML = '';
+                    
+                    data.properties.forEach(prop => {
+                        const thumbnail = prop.thumbnail || '/static/images/property-placeholder.jpg';
+                        
+                        // Create similarity reasons display
+                        let similarityInfo = '';
+                        if (prop.similarity_reasons && prop.similarity_reasons.length > 0) {
+                            // Show top 2 reasons and format them nicely
+                            const reasons = prop.similarity_reasons.slice(0, 2);
+                            const formattedReasons = reasons.map(reason => {
+                                // Capitalize first letter and add proper formatting
+                                return reason.charAt(0).toUpperCase() + reason.slice(1);
+                            });
+                            
+                            similarityInfo = `
+                                <div class="similarity-info mb-2">
+                                    <small class="text-success d-flex align-items-center">
+                                        <i class="fas fa-check-circle me-1"></i>
+                                        <span>${formattedReasons.join(' • ')}</span>
+                                    </small>
+                                </div>
+                            `;
+                        }
+                        
+                        // Add similarity score badge if available
+                        let scoreBadge = '';
+                        if (prop.similarity_score && prop.similarity_score > 0) {
+                            // Ensure the score is properly formatted and capped at 100%
+                            const scorePercentage = Math.min(Math.max(Math.round(prop.similarity_score), 15), 100);
+                            let badgeColor = 'bg-primary';
+                            
+                            // Color code based on similarity score
+                            if (scorePercentage >= 80) {
+                                badgeColor = 'bg-success';
+                            } else if (scorePercentage >= 60) {
+                                badgeColor = 'bg-info';
+                            } else if (scorePercentage >= 40) {
+                                badgeColor = 'bg-warning';
+                            } else {
+                                badgeColor = 'bg-secondary';
+                            }
+                            
+                            scoreBadge = `
+                                <span class="similarity-badge badge ${badgeColor} ms-2" title="Similarity match score">
+                                    <i class="fas fa-percent me-1"></i>${scorePercentage}% match
+                                </span>
+                            `;
+                        }
+                        
+                        container.innerHTML += `
+                            <a href="/properties/${prop.id}/" class="similar-property-item">
+                                <img src="${thumbnail}" alt="${prop.title}" class="property-thumbnail">
+                                <div class="flex-grow-1">
+                                    <div class="d-flex align-items-center mb-1">
+                                        <h6 class="mb-0 flex-grow-1">${prop.title}</h6>
+                                        ${scoreBadge}
+                                    </div>
+                                    ${similarityInfo}
+                                    <p class="mb-1 text-muted small">${prop.address}</p>
+                                    <div class="d-flex justify-content-between align-items-center">
+                                        <small class="text-muted">
+                                            <i class="fas fa-bed me-1"></i>${prop.bedrooms}
+                                            <i class="fas fa-bath mx-1"></i>${prop.bathrooms}
+                                        </small>
+                                        <strong class="text-primary">Rs. ${prop.price.toLocaleString()}</strong>
+                                    </div>
+                                </div>
+                            </a>
+                        `;
+                    });
+                } else {
+                    container.innerHTML = `
+                        <div class="text-center py-4 text-muted">
+                            <i class="fas fa-home fa-2x mb-3 opacity-50"></i>
+                            <p class="mb-0">No similar properties found</p>
+                            <small>Try searching for properties with different criteria</small>
+                        </div>
+                    `;
+                }
+            })
+            .catch(error => {
+                console.error('Error loading similar properties:', error);
+                container.innerHTML = `
+                    <div class="text-center py-4 text-muted">
+                        <i class="fas fa-exclamation-triangle fa-2x mb-3 opacity-50"></i>
+                        <p class="mb-0">Error loading similar properties</p>
+                    </div>
+                `;
+            });
+    }
+    
+    // Auto-scroll to chat on page load if there's a chat anchor
+    if (window.location.hash === '#chat') {
+        setTimeout(() => {
+            scrollToChat();
+        }, 500);
+    }
+    
+    // Enhanced message form handling
+    const messageForm = document.querySelector('form[action*="send_message"]');
+    if (messageForm) {
+        messageForm.addEventListener('submit', function(e) {
+            const messageInput = this.querySelector('input[name="message"]');
+            const submitButton = this.querySelector('button[type="submit"]');
+            
+            if (messageInput.value.trim() === '') {
+                e.preventDefault();
+                showToast('Please enter a message', 'warning');
+                return;
+            }
+            
+            // Show loading state
+            const originalButtonContent = submitButton.innerHTML;
+            submitButton.innerHTML = '<i class="fas fa-spinner fa-spin"></i>';
+            submitButton.disabled = true;
+            
+            // Re-enable after form submission
+            setTimeout(() => {
+                submitButton.innerHTML = originalButtonContent;
+                submitButton.disabled = false;
+            }, 2000);
+        });
+    }
+});
+
+// Toast notification function (enhanced)
+function showToast(message, type = 'info') {
+    const toastContainer = document.querySelector('.toast-container') || createToastContainer();
+    
+    const toast = document.createElement('div');
+    toast.className = `toast align-items-center text-white bg-${type === 'error' ? 'danger' : type === 'warning' ? 'warning' : type === 'success' ? 'success' : 'primary'} border-0`;
+    toast.setAttribute('role', 'alert');
+    toast.setAttribute('aria-live', 'assertive');
+    toast.setAttribute('aria-atomic', 'true');
+    
+    toast.innerHTML = `
+        <div class="d-flex">
+            <div class="toast-body">
+                <i class="fas fa-${type === 'error' ? 'exclamation-circle' : type === 'warning' ? 'exclamation-triangle' : type === 'success' ? 'check-circle' : 'info-circle'} me-2"></i>
+                ${message}
+            </div>
+            <button type="button" class="btn-close btn-close-white me-2 m-auto" data-bs-dismiss="toast" aria-label="Close"></button>
+        </div>
+    `;
+    
+    toastContainer.appendChild(toast);
+    
+    // Initialize Bootstrap toast
+    const bsToast = new bootstrap.Toast(toast, {
+        delay: 5000
+    });
+    bsToast.show();
+    
+    // Remove from DOM after hiding
+    toast.addEventListener('hidden.bs.toast', () => {
+        toast.remove();
+    });
+}
+
+function createToastContainer() {
+    const container = document.createElement('div');
+    container.className = 'toast-container position-fixed top-0 end-0 p-3';
+    container.style.zIndex = '9999';
+    document.body.appendChild(container);
+    return container;
+}
+</script>
+{% endblock %}
