@@ -530,7 +530,7 @@ This project is licensed under the MIT License - see LICENSE file for details.
 
 ## 📞 Support
 
-- 📧 Email: support@realestate-app.com
+- 📧 Email: mr.prashon@gmail.com
 - 🐛 Issues: GitHub Issues
 - 📚 Docs: Project Wiki
 
